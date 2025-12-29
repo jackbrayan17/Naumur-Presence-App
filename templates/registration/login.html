@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign in" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <div class="auth-layout">
+    <section class="card auth-card">
+      <h1>{% trans "Sign in" %}</h1>
+      <p class="muted">{% trans "Track presence, verify attendance, and manage departments." %}</p>
+      <form method="post" class="form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="field">
+          <label for="{{ form.username.id_for_label }}">{% trans "Username" %}</label>
+          {{ form.username }}
+        </div>
+        <div class="field">
+          <label for="{{ form.password.id_for_label }}">{% trans "Password" %}</label>
+          <div class="password-wrap">
+            {{ form.password }}
+            <button
+              type="button"
+              class="icon-btn toggle-password"
+              data-target="id_password"
+              aria-label="{% trans 'Show password' %}"
+            >
+              <span class="icon-eye" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+        <label class="checkbox">
+          {{ form.remember_me }} {% trans "Keep me signed in" %}
+        </label>
+        <button class="btn btn-primary" type="submit">{% trans "Sign in" %}</button>
+      </form>
+    </section>
+    <section class="card auth-card accent-card">
+      <h2>{% trans "Naumur Presence App" %}</h2>
+      <ul class="feature-list">
+        <li>{% trans "Weekly check-in and check-out." %}</li>
+        <li>{% trans "Supervisor verification workflow." %}</li>
+        <li>{% trans "Department presence analytics." %}</li>
+        <li>{% trans "History exports to CSV and XLSX." %}</li>
+      </ul>
+    </section>
+  </div>
+{% endblock %}

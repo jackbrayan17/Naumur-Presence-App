@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "My Weekly Presence" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "Weekly Presence" %}</h1>
+        <p class="muted">
+          {% trans "Week of" %} {{ week_start }} - {{ week_end }}
+        </p>
+        {% if is_editing_other %}
+          <p class="muted">{% trans "Employee" %}: {{ target_user.get_full_name|default:target_user.username }}</p>
+        {% endif %}
+      </div>
+      <div class="header-actions">
+        <a class="btn btn-outline" href="?week={{ prev_week }}">&#8592; {% trans "Previous" %}</a>
+        <a class="btn btn-outline" href="?week={{ next_week }}">{% trans "Next" %} &#8594;</a>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">{% trans "Present days" %}</span>
+        <span class="stat-value">{{ present_days }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">{% trans "Absent days" %}</span>
+        <span class="stat-value">{{ absent_days }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">{% trans "Present hours" %}</span>
+        <span class="stat-value">{{ present_hours|floatformat:1 }}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">{% trans "Absent hours" %}</span>
+        <span class="stat-value">{{ absent_hours|floatformat:1 }}</span>
+      </div>
+    </div>
+    <form method="post" class="form">
+      {% csrf_token %}
+      {% if is_editing_other %}
+        <input type="hidden" name="user_id" value="{{ target_user.id }}" />
+      {% endif %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% trans "Date" %}</th>
+              <th>{% trans "Arrival" %}</th>
+              <th>{% trans "Departure" %}</th>
+              <th>{% trans "Verified" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in week_rows %}
+              <tr class="{% if row.is_future %}row-muted{% endif %}">
+                <td>
+                  <div class="date-cell">
+                    <span class="date-day">{{ row.date|date:"D" }}</span>
+                    <span class="date-full">{{ row.date }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="checkline">
+                    <input
+                      type="checkbox"
+                      name="arrive_{{ row.date|date:'Y-m-d' }}"
+                      {% if row.record and row.record.arrival_time %}checked{% endif %}
+                      {% if not row.can_edit_arrival %}disabled{% endif %}
+                    />
+                    <input
+                      type="time"
+                      name="arrive_time_{{ row.date|date:'Y-m-d' }}"
+                      value="{% if row.record and row.record.arrival_time %}{{ row.record.arrival_time|time:'H:i' }}{% else %}08:30{% endif %}"
+                      {% if not row.can_edit_arrival %}disabled{% endif %}
+                    />
+                  </div>
+                </td>
+                <td>
+                  <div class="checkline">
+                    <input
+                      type="checkbox"
+                      name="depart_{{ row.date|date:'Y-m-d' }}"
+                      {% if row.record and row.record.departure_time %}checked{% endif %}
+                      {% if not row.can_edit_departure %}disabled{% endif %}
+                    />
+                    <input
+                      type="time"
+                      name="depart_time_{{ row.date|date:'Y-m-d' }}"
+                      value="{% if row.record and row.record.departure_time %}{{ row.record.departure_time|time:'H:i' }}{% else %}{{ default_departure_time|time:'H:i' }}{% endif %}"
+                      {% if not row.can_edit_departure %}disabled{% endif %}
+                    />
+                  </div>
+                </td>
+                <td>
+                  {% if row.record and row.record.is_verified %}
+                    <span class="badge success">{% trans "Verified" %}</span>
+                  {% else %}
+                    <span class="badge">{% trans "Pending" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{% trans "Save weekly attendance" %}</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

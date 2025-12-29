@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "History" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "History" %}</h1>
+        <p class="muted">{% trans "Weekly attendance archives and exports." %}</p>
+      </div>
+      <form class="filter-form" method="get">
+        <label>
+          {% trans "From" %}
+          <input type="date" name="start" value="{{ start_date }}" />
+        </label>
+        <label>
+          {% trans "To" %}
+          <input type="date" name="end" value="{{ end_date }}" />
+        </label>
+        <button class="btn btn-outline" type="submit">{% trans "Filter" %}</button>
+      </form>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Week" %}</th>
+            <th>{% trans "View" %}</th>
+            <th>{% trans "Exports" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in page.object_list %}
+            <tr>
+              <td>{{ week.label }}</td>
+              <td>
+                <a class="btn btn-outline" href="{% url 'history_week' week.start %}">
+                  {% trans "Open table" %}
+                </a>
+              </td>
+              <td>
+                <a class="btn btn-outline" href="{% url 'history_export' week.start 'csv' %}">CSV</a>
+                <a class="btn btn-outline" href="{% url 'history_export' week.start 'xlsx' %}">XLSX</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="row-muted">{% trans "No weeks found." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      {% if page.has_previous %}
+        <a class="btn btn-outline" href="?page={{ page.previous_page_number }}&start={{ start_date }}&end={{ end_date }}">
+          {% trans "Previous" %}
+        </a>
+      {% endif %}
+      <span class="page-status">{% trans "Page" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}
+        <a class="btn btn-outline" href="?page={{ page.next_page_number }}&start={{ start_date }}&end={{ end_date }}">
+          {% trans "Next" %}
+        </a>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

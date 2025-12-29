@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Weekly Table" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "Weekly Table" %}</h1>
+        <p class="muted">{% trans "Week of" %} {{ week_start }} - {{ week_end }}</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn btn-outline" href="{% url 'history_export' week_start 'csv' %}">CSV</a>
+        <a class="btn btn-outline" href="{% url 'history_export' week_start 'xlsx' %}">XLSX</a>
+      </div>
+    </div>
+
+    {% for table in dept_tables %}
+      <h2>{{ table.label }}</h2>
+      <div class="table-wrap">
+        <table class="data-table table-wide">
+          <thead>
+            <tr>
+              <th>{% trans "Employee" %}</th>
+              {% for day in week_days %}
+                <th>{{ day|date:"D d" }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in table.rows %}
+              <tr>
+                <td>{{ row.employee.get_full_name|default:row.employee.username }}</td>
+                {% for cell in row.cells %}
+                  <td>
+                    {% if cell.arrival or cell.departure %}
+                      <div class="day-cell">
+                        <span class="time-range">
+                          {% if cell.arrival %}{{ cell.arrival|time:"H:i" }}{% else %}--:--{% endif %}
+                          -
+                          {% if cell.departure %}{{ cell.departure|time:"H:i" }}{% else %}--:--{% endif %}
+                        </span>
+                        {% if cell.is_verified %}
+                          <span class="badge success">{% trans "Verified" %}</span>
+                        {% else %}
+                          <span class="badge">{% trans "Pending" %}</span>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <span class="row-muted">--</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="{{ week_days|length|add:1 }}" class="row-muted">{% trans "No employees found." %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  </section>
+{% endblock %}

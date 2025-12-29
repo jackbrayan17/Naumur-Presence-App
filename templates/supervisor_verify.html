@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Supervisor Verification" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "Supervisor Verification" %}</h1>
+        <p class="muted">{% trans "Today" %}: {{ today }}</p>
+      </div>
+      {% if not needs_checkin %}
+        <form method="post">
+          {% csrf_token %}
+          <button class="btn btn-outline" name="depart_self" value="1" type="submit">
+            {% trans "Check-out" %}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if needs_checkin %}
+      <div class="notice">
+        <p>{% trans "Check-in to access the verification panel." %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <button class="btn btn-primary" name="check_in" value="1" type="submit">
+            {% trans "Check-in now" %}
+          </button>
+        </form>
+      </div>
+    {% else %}
+      <form method="post" class="form">
+        {% csrf_token %}
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{% trans "Verify" %}</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "Department" %}</th>
+                <th>{% trans "Arrival" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in pending_attendance %}
+                <tr>
+                  <td>
+                    <input type="checkbox" name="verify_ids" value="{{ record.id }}" />
+                  </td>
+                  <td>{{ record.user.get_full_name|default:record.user.username }}</td>
+                  <td>{{ record.user.department.name }}</td>
+                  <td>{{ record.arrival_time|time:"H:i" }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="row-muted">{% trans "No pending employees today." %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" name="verify_selected" value="1" type="submit">
+            {% trans "Validate selected" %}
+          </button>
+        </div>
+      </form>
+
+      <h2>{% trans "Edit employee weeks" %}</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% trans "Employee" %}</th>
+              <th>{% trans "Department" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for employee in employees %}
+              <tr>
+                <td>{{ employee.get_full_name|default:employee.username }}</td>
+                <td>{{ employee.department.name|default:"-" }}</td>
+                <td>
+                  <a class="btn btn-outline" href="{% url 'employee_week' %}?user={{ employee.id }}&week={{ current_week_start }}">
+                    {% trans "Edit week" %}
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="row-muted">{% trans "No employees found." %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

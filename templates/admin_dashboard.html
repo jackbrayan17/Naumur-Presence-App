@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Admin Dashboard" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "Admin Dashboard" %}</h1>
+        <p class="muted">{% trans "Presence overview by department and employee." %}</p>
+      </div>
+      <form class="filter-form" method="get">
+        <label>
+          {% trans "From" %}
+          <input type="date" name="start" value="{{ start_date }}" />
+        </label>
+        <label>
+          {% trans "To" %}
+          <input type="date" name="end" value="{{ end_date }}" />
+        </label>
+        <button class="btn btn-outline" type="submit">{% trans "Filter" %}</button>
+      </form>
+    </div>
+
+    <h2>{% trans "Presence rate by department" %}</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Department" %}</th>
+            <th>{% trans "Expected" %}</th>
+            <th>{% trans "Present" %}</th>
+            <th>{% trans "Rate" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dept_rows %}
+            <tr>
+              <td>{{ row.department.name|default:"-" }}</td>
+              <td>{{ row.expected }}</td>
+              <td>{{ row.present }}</td>
+              <td>{{ row.rate|floatformat:1 }}%</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="row-muted">{% trans "No data available." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>{% trans "Employee presence and absence" %}</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Employee" %}</th>
+            <th>{% trans "Department" %}</th>
+            <th>{% trans "Present days" %}</th>
+            <th>{% trans "Absent days" %}</th>
+            <th>{% trans "Present hours" %}</th>
+            <th>{% trans "Absent hours" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in employee_rows %}
+            <tr>
+              <td>{{ row.employee.get_full_name|default:row.employee.username }}</td>
+              <td>{{ row.department.name|default:"-" }}</td>
+              <td>{{ row.present_days }}</td>
+              <td>{{ row.absent_days }}</td>
+              <td>{{ row.present_hours|floatformat:1 }}</td>
+              <td>{{ row.absent_hours|floatformat:1 }}</td>
+              <td>
+                <a class="btn btn-outline" href="{% url 'employee_week' %}?user={{ row.employee.id }}&week={{ current_week_start }}">
+                  {% trans "Edit week" %}
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="row-muted">{% trans "No employees found." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

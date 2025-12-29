@@ -1,0 +1,227 @@
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Welcome"
+msgstr "Bienvenue"
+
+msgid "Logout"
+msgstr "Deconnexion"
+
+msgid "Sign in"
+msgstr "Se connecter"
+
+msgid "Track presence, verify attendance, and manage departments."
+msgstr "Suivre la presence, verifier les presences et gerer les departements."
+
+msgid "Username"
+msgstr "Nom d utilisateur"
+
+msgid "Password"
+msgstr "Mot de passe"
+
+msgid "Show password"
+msgstr "Afficher le mot de passe"
+
+msgid "Keep me signed in"
+msgstr "Garder ma session ouverte"
+
+msgid "Naumur Presence App"
+msgstr "Naumur Presence App"
+
+msgid "Weekly check-in and check-out."
+msgstr "Pointage hebdomadaire arrivee et depart."
+
+msgid "Supervisor verification workflow."
+msgstr "Verification par surveillant."
+
+msgid "Department presence analytics."
+msgstr "Analyse des presences par departement."
+
+msgid "History exports to CSV and XLSX."
+msgstr "Exports historiques en CSV et XLSX."
+
+msgid "My Weekly Presence"
+msgstr "Ma presence hebdomadaire"
+
+msgid "Weekly Presence"
+msgstr "Presence hebdomadaire"
+
+msgid "Week of"
+msgstr "Semaine du"
+
+msgid "Previous"
+msgstr "Precedent"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Present days"
+msgstr "Jours presents"
+
+msgid "Absent days"
+msgstr "Jours absents"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Arrival"
+msgstr "Arrivee"
+
+msgid "Departure"
+msgstr "Depart"
+
+msgid "Verified"
+msgstr "Verifie"
+
+msgid "Pending"
+msgstr "En attente"
+
+msgid "Save weekly attendance"
+msgstr "Enregistrer la semaine"
+
+msgid "Supervisor Verification"
+msgstr "Verification surveillant"
+
+msgid "Today"
+msgstr "Aujourd hui"
+
+msgid "Check-out"
+msgstr "Sortie"
+
+msgid "Check-in to access the verification panel."
+msgstr "Faire l arrivee pour acceder a la verification."
+
+msgid "Check-in now"
+msgstr "Faire l arrivee"
+
+msgid "Verify"
+msgstr "Verifier"
+
+msgid "Employee"
+msgstr "Employe"
+
+msgid "Department"
+msgstr "Departement"
+
+msgid "No pending employees today."
+msgstr "Aucun employe en attente aujourd hui."
+
+msgid "Validate selected"
+msgstr "Valider la selection"
+
+msgid "Admin Dashboard"
+msgstr "Tableau de bord admin"
+
+msgid "Presence overview by department and employee."
+msgstr "Vue des presences par departement et employe."
+
+msgid "From"
+msgstr "Du"
+
+msgid "To"
+msgstr "Au"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+msgid "Presence rate by department"
+msgstr "Taux de presence par departement"
+
+msgid "Expected"
+msgstr "Attendu"
+
+msgid "Present"
+msgstr "Present"
+
+msgid "Rate"
+msgstr "Taux"
+
+msgid "No data available."
+msgstr "Aucune donnee disponible."
+
+msgid "Employee presence and absence"
+msgstr "Presence et absence des employes"
+
+msgid "No employees found."
+msgstr "Aucun employe trouve."
+
+msgid "History"
+msgstr "Historique"
+
+msgid "Weekly attendance archives and exports."
+msgstr "Archives hebdomadaires et exports."
+
+msgid "Week"
+msgstr "Semaine"
+
+msgid "Exports"
+msgstr "Exports"
+
+msgid "No weeks found."
+msgstr "Aucune semaine trouvee."
+
+msgid "Page"
+msgstr "Page"
+
+msgid "Present hours"
+msgstr "Heures presentes"
+
+msgid "Absent hours"
+msgstr "Heures absentes"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Edit week"
+msgstr "Modifier la semaine"
+
+msgid "View"
+msgstr "Voir"
+
+msgid "Open table"
+msgstr "Ouvrir le tableau"
+
+msgid "Weekly Table"
+msgstr "Tableau hebdomadaire"
+
+msgid "Employee not found."
+msgstr "Employe introuvable."
+
+msgid "Unassigned"
+msgstr "Non affecte"
+
+msgid "Edit employee weeks"
+msgstr "Modifier les semaines des employes"
+
+msgid "My week"
+msgstr "Ma semaine"
+
+msgid "Supervisor"
+msgstr "Surveillant"
+
+msgid "Dashboard"
+msgstr "Tableau de bord"
+
+msgid "Access denied."
+msgstr "Acces refuse."
+
+msgid "Arrival already recorded. Ask a supervisor or admin to edit."
+msgstr "Arrivee deja enregistree. Demandez a un superviseur ou admin."
+
+msgid "Departure requires an arrival time. Ask a supervisor or admin."
+msgstr "Le depart exige une arrivee. Demandez a un superviseur ou admin."
+
+msgid "Attendance saved."
+msgstr "Presence enregistree."
+
+msgid "Verified %(count)s employees."
+msgstr "Employes verifies: %(count)s."
+
+msgid "Invalid week start."
+msgstr "Debut de semaine invalide."
+
+msgid "Format not supported."
+msgstr "Format non supporte."
