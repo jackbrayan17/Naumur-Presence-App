@@ -12,28 +12,31 @@
       </div>
     </div>
 
-    <div class="profile-row">
-      {% if user.profile_image %}
-        <img class="profile-avatar" src="{{ user.profile_image.url }}" alt="{{ user.get_full_name|default:user.username }}" />
-      {% else %}
-        <div class="profile-avatar avatar-fallback" style="background: {{ user.avatar_color }};">
-          {{ user.initials }}
+    <div class="profile-grid">
+      <div class="profile-summary">
+        {% if user.profile_image %}
+          <img class="profile-avatar" src="{{ user.profile_image.url }}" alt="{{ user.get_full_name|default:user.username }}" />
+        {% else %}
+          <div class="profile-avatar avatar-fallback" style="background: {{ user.avatar_color }};">
+            {{ user.initials }}
+          </div>
+        {% endif %}
+        <div>
+          <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+          <div class="muted">{% trans "Start date" %}: {{ user.start_date }}</div>
+          <div class="muted">{{ user.department.name|default:"-" }}</div>
         </div>
-      {% endif %}
-      <div>
-        <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
-        <div class="muted">{% trans "Start date" %}: {{ user.start_date }}</div>
       </div>
-    </div>
 
-    <form method="post" enctype="multipart/form-data" class="form">
-      {% csrf_token %}
-      <div class="field">
-        <label for="{{ form.profile_image.id_for_label }}">{% trans "Profile picture" %}</label>
-        {{ form.profile_image }}
-        {{ form.profile_image.errors }}
-      </div>
-      <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
-    </form>
+      <form method="post" enctype="multipart/form-data" class="form profile-form">
+        {% csrf_token %}
+        <div class="field">
+          <label for="{{ form.profile_image.id_for_label }}">{% trans "Profile picture" %}</label>
+          {{ form.profile_image }}
+          {{ form.profile_image.errors }}
+        </div>
+        <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+      </form>
+    </div>
   </section>
 {% endblock %}

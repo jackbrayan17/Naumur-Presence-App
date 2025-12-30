@@ -16,8 +16,8 @@
         {% endif %}
       </div>
       <div class="header-actions">
-        <a class="btn btn-outline" href="?week={{ prev_week }}">&#8592; {% trans "Previous" %}</a>
-        <a class="btn btn-outline" href="?week={{ next_week }}">{% trans "Next" %} &#8594;</a>
+        <a class="btn btn-outline" href="?week={{ prev_week|date:'Y-m-d' }}">&#8592; {% trans "Previous" %}</a>
+        <a class="btn btn-outline" href="?week={{ next_week|date:'Y-m-d' }}">{% trans "Next" %} &#8594;</a>
       </div>
     </div>
     <div class="stats">
@@ -38,6 +38,9 @@
         <span class="stat-value">{{ absent_hours|floatformat:1 }}</span>
       </div>
     </div>
+    {% if is_self_employee %}
+      <p class="muted">{% trans "Only today can be edited. Past and future days are locked." %}</p>
+    {% endif %}
     <form method="post" class="form">
       {% csrf_token %}
       {% if is_editing_other %}
@@ -51,11 +54,12 @@
               <th>{% trans "Arrival" %}</th>
               <th>{% trans "Departure" %}</th>
               <th>{% trans "Verified" %}</th>
+              <th>{% trans "Action" %}</th>
             </tr>
           </thead>
           <tbody>
             {% for row in week_rows %}
-              <tr class="{% if row.is_future %}row-muted{% endif %}">
+              <tr class="{% if row.is_locked %}row-muted{% endif %}">
                 <td>
                   <div class="date-cell">
                     <span class="date-day">{{ row.date|date:"D" }}</span>
@@ -101,13 +105,21 @@
                     <span class="badge">{% trans "Pending" %}</span>
                   {% endif %}
                 </td>
+                <td>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    type="submit"
+                    name="save_day"
+                    value="{{ row.date|date:'Y-m-d' }}"
+                    {% if row.is_locked %}disabled{% endif %}
+                  >
+                    {% trans "Save day" %}
+                  </button>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" type="submit">{% trans "Save weekly attendance" %}</button>
       </div>
     </form>
   </section>

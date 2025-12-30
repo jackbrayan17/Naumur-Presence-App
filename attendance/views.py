@@ -17,6 +17,7 @@ from django.utils.translation import gettext as _
 from openpyxl import Workbook
 
 from .forms import (
+    AbsenceJustificationForm,
     DepartmentCreateForm,
     EmployeeCreateForm,
     LoginForm,
@@ -167,15 +168,22 @@ def employee_week(request):
     )
     attendance_map = {record.date: record for record in attendance_qs}
 
+    is_self_employee = viewer == target_user and viewer.role == User.Roles.EMPLOYEE
+
     if request.method == "POST":
+        save_day = parse_date(request.POST.get("save_day"))
+        if not save_day or save_day not in week_days:
+            messages.error(request, _("Select a valid day to save."))
+            return redirect(f"{request.path}?week={week_start.isoformat()}")
+        if save_day < target_user.start_date:
+            messages.error(request, _("This day is before the employee start date."))
+            return redirect(f"{request.path}?week={week_start.isoformat()}")
+        if is_self_employee and save_day != today:
+            messages.error(request, _("Only today can be submitted."))
+            return redirect(f"{request.path}?week={week_start.isoformat()}")
+
         changes = 0
-        for day in week_days:
-            if (
-                day > today
-                and viewer == target_user
-                and viewer.role == User.Roles.EMPLOYEE
-            ):
-                continue
+        for day in [save_day]:
             attendance = attendance_map.get(day)
             if not attendance:
                 attendance = AttendanceDay(user=target_user, date=day)
@@ -205,7 +213,7 @@ def employee_week(request):
                     )
 
             if request.POST.get(depart_key) == "on":
-                if attendance.arrival_time is None and not (user.is_admin or user.is_supervisor):
+                if attendance.arrival_time is None and not (viewer.is_admin or viewer.is_supervisor):
                     messages.error(
                         request,
                         _(
@@ -238,28 +246,39 @@ def employee_week(request):
                     "week_start": week_start.isoformat(),
                     "changes": changes,
                     "employee": target_user.username,
+                    "day": save_day.isoformat(),
                 },
             )
             messages.success(request, _("Attendance saved."))
+        else:
+            messages.info(request, _("No changes to save for this day."))
         query = f"week={week_start.isoformat()}"
         if target_user != viewer:
             query += f"&user={target_user.id}"
         return redirect(f"{request.path}?{query}")
 
-    present_days = sum(
-        1 for record in attendance_map.values() if record.arrival_time is not None
-    )
     effective_end = min(week_end, today)
+    effective_start = max(week_start, target_user.start_date)
+    present_days = sum(
+        1
+        for record in attendance_map.values()
+        if record.arrival_time is not None
+        and effective_start <= record.date <= effective_end
+    )
     expected_days = (
-        working_days_between(week_start, effective_end)
-        if week_start <= effective_end
+        working_days_between(effective_start, effective_end)
+        if effective_start <= effective_end
         else 0
     )
     absent_days = max(expected_days - present_days, 0)
 
     present_hours = 0.0
     for record in attendance_map.values():
-        if record.arrival_time and record.departure_time:
+        if (
+            record.arrival_time
+            and record.departure_time
+            and effective_start <= record.date <= effective_end
+        ):
             present_hours += hours_between(record.arrival_time, record.departure_time)
     expected_hours = expected_daily_hours(target_user.is_intern) * expected_days
     absent_hours = max(expected_hours - present_hours, 0)
@@ -267,18 +286,31 @@ def employee_week(request):
     week_rows = []
     for day in week_days:
         record = attendance_map.get(day)
-        can_edit_arrival = day <= today and (
-            record is None
-            or record.arrival_time is None
-            or viewer.is_admin
-            or viewer.is_supervisor
-        )
-        can_edit_departure = day <= today and (
-            record is None
-            or record.departure_time is None
-            or viewer.is_admin
-            or viewer.is_supervisor
-        )
+        is_before_start = day < target_user.start_date
+        if is_self_employee:
+            can_edit_arrival = day == today and (
+                record is None or record.arrival_time is None
+            )
+            can_edit_departure = day == today and (
+                record is None or record.departure_time is None
+            )
+        else:
+            can_edit_arrival = day <= today and (
+                record is None
+                or record.arrival_time is None
+                or viewer.is_admin
+                or viewer.is_supervisor
+            )
+            can_edit_departure = day <= today and (
+                record is None
+                or record.departure_time is None
+                or viewer.is_admin
+                or viewer.is_supervisor
+            )
+        if is_before_start:
+            can_edit_arrival = False
+            can_edit_departure = False
+        is_locked = is_before_start or day > today or (is_self_employee and day != today)
         week_rows.append(
             {
                 "date": day,
@@ -286,6 +318,8 @@ def employee_week(request):
                 "can_edit_arrival": can_edit_arrival,
                 "can_edit_departure": can_edit_departure,
                 "is_future": day > today,
+                "is_before_start": is_before_start,
+                "is_locked": is_locked,
             }
         )
 
@@ -304,6 +338,7 @@ def employee_week(request):
         "default_departure_time": target_user.expected_end_time(),
         "target_user": target_user,
         "is_editing_other": target_user != viewer,
+        "is_self_employee": is_self_employee,
     }
     return render(request, "employee_week.html", context)
 
@@ -317,23 +352,36 @@ def supervisor_verify(request):
     today = timezone.localdate()
     supervisor_record, _ = AttendanceDay.objects.get_or_create(user=user, date=today)
 
+    employee_form = EmployeeCreateForm()
+    department_form = DepartmentCreateForm()
+    justification_form = AbsenceJustificationForm()
+
     if request.method == "POST" and "create_department" in request.POST:
         department_form = DepartmentCreateForm(request.POST)
         if department_form.is_valid():
             department_form.save()
             messages.success(request, _("Department created."))
             return redirect("supervisor_verify")
-        employee_form = EmployeeCreateForm()
     elif request.method == "POST" and "create_employee" in request.POST:
         employee_form = EmployeeCreateForm(request.POST)
         if employee_form.is_valid():
             employee_form.save()
             messages.success(request, _("Employee created."))
             return redirect("supervisor_verify")
-        department_form = DepartmentCreateForm()
-    else:
-        employee_form = EmployeeCreateForm()
-        department_form = DepartmentCreateForm()
+    elif request.method == "POST" and "create_justification" in request.POST:
+        justification_form = AbsenceJustificationForm(request.POST, request.FILES)
+        if justification_form.is_valid():
+            justification = justification_form.save(commit=False)
+            justification.created_by = user
+            justification.save()
+            _log_event(
+                request,
+                SystemLog.EVENT_JUSTIFICATION,
+                f"Justification added by {user.username}",
+                {"employee": justification.user.username},
+            )
+            messages.success(request, _("Justification saved."))
+            return redirect("supervisor_verify")
 
     if request.method == "POST" and "check_in" in request.POST:
         if supervisor_record.arrival_time is None:
@@ -356,6 +404,7 @@ def supervisor_verify(request):
                 "today": today,
                 "employee_form": employee_form,
                 "department_form": department_form,
+                "justification_form": justification_form,
             },
         )
 
@@ -414,6 +463,7 @@ def supervisor_verify(request):
         "current_week_start": get_week_start(today),
         "employee_form": employee_form,
         "department_form": department_form,
+        "justification_form": justification_form,
     }
     return render(request, "supervisor_verify.html", context)
 
@@ -434,19 +484,18 @@ def admin_dashboard(request):
     departments = Department.objects.all()
     employees = User.objects.filter(role=User.Roles.EMPLOYEE)
     effective_end = min(end_date, today)
-    working_days = (
-        working_days_between(start_date, effective_end)
-        if start_date <= effective_end
-        else 0
-    )
 
     dept_rows = []
     for dept in departments:
-        dept_employees = employees.filter(department=dept)
-        expected = working_days * dept_employees.count()
+        dept_employees = list(employees.filter(department=dept))
+        expected = 0
+        for employee in dept_employees:
+            employee_start = max(start_date, employee.start_date)
+            if employee_start <= effective_end:
+                expected += working_days_between(employee_start, effective_end)
         present = AttendanceDay.objects.filter(
             user__in=dept_employees,
-            date__range=(start_date, end_date),
+            date__range=(start_date, effective_end),
             arrival_time__isnull=False,
         ).count()
         rate = (present / expected * 100) if expected else 0
@@ -467,9 +516,10 @@ def admin_dashboard(request):
     employee_rows = []
     employee_cards = []
     for employee in employees.select_related("department"):
+        employee_start = max(start_date, employee.start_date)
         records = list(
             AttendanceDay.objects.filter(
-                user=employee, date__range=(start_date, effective_end)
+                user=employee, date__range=(employee_start, effective_end)
             )
         )
         present_days = sum(1 for record in records if record.arrival_time is not None)
@@ -478,9 +528,14 @@ def admin_dashboard(request):
             for record in records
             if record.arrival_time and record.departure_time
         )
-        expected_hours = expected_daily_hours(employee.is_intern) * working_days
+        employee_expected_days = (
+            working_days_between(employee_start, effective_end)
+            if employee_start <= effective_end
+            else 0
+        )
+        expected_hours = expected_daily_hours(employee.is_intern) * employee_expected_days
         absent_hours = max(expected_hours - present_hours, 0)
-        absent_days = max(working_days - present_days, 0)
+        absent_days = max(employee_expected_days - present_days, 0)
         employee_rows.append(
             {
                 "employee": employee,

@@ -33,6 +33,14 @@ document.querySelectorAll(".toggle-password").forEach((button) => {
     const isPassword = input.getAttribute("type") === "password";
     input.setAttribute("type", isPassword ? "text" : "password");
     button.setAttribute("aria-pressed", isPassword);
+    const icon = button.querySelector("i");
+    if (icon) {
+      icon.classList.toggle("fa-eye", !isPassword);
+      icon.classList.toggle("fa-eye-slash", isPassword);
+    }
+    const showLabel = button.getAttribute("data-show-label") || "Show password";
+    const hideLabel = button.getAttribute("data-hide-label") || "Hide password";
+    button.setAttribute("aria-label", isPassword ? hideLabel : showLabel);
   });
 });
 
@@ -87,3 +95,20 @@ document.addEventListener("keydown", (event) => {
     closeModal();
   }
 });
+
+const justificationForm = document.querySelector("[data-justification-form]");
+if (justificationForm) {
+  const reasonSelect = justificationForm.querySelector("select[name='reason']");
+  const otherField = justificationForm.querySelector("[data-other-reason]");
+
+  const toggleOtherReason = () => {
+    if (!reasonSelect || !otherField) return;
+    const show = reasonSelect.value === "other";
+    otherField.style.display = show ? "block" : "none";
+  };
+
+  toggleOtherReason();
+  if (reasonSelect) {
+    reasonSelect.addEventListener("change", toggleOtherReason);
+  }
+}

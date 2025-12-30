@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
 
 from .models import (
     AttendanceDay,
+    AbsenceJustification,
     Department,
     SystemLog,
     User,
@@ -33,6 +34,7 @@ class UserAdmin(DjangoUserAdmin):
         "role",
         "department",
         "is_intern",
+        "start_date",
         "is_staff",
     )
     list_filter = ("role", "department", "is_intern")
@@ -100,3 +102,10 @@ class SystemLogAdmin(admin.ModelAdmin):
     list_display = ("event_type", "user", "ip_address", "created_at")
     list_filter = ("event_type", "created_at")
     search_fields = ("message", "user__username")
+
+
+@admin.register(AbsenceJustification)
+class AbsenceJustificationAdmin(admin.ModelAdmin):
+    list_display = ("user", "start_date", "end_date", "reason", "created_by", "created_at")
+    list_filter = ("reason", "start_date")
+    search_fields = ("user__username", "user__first_name", "user__last_name")

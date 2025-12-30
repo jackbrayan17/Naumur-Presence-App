@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import Department, User
+from .models import AbsenceJustification, Department, User
 
 
 class LoginForm(AuthenticationForm):
@@ -89,3 +89,43 @@ class ProfileImageForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.update({"class": "input"})
+
+
+class AbsenceJustificationForm(forms.ModelForm):
+    class Meta:
+        model = AbsenceJustification
+        fields = ["user", "start_date", "end_date", "reason", "other_reason", "receipt"]
+        labels = {
+            "user": _("Employee"),
+            "start_date": _("Start date"),
+            "end_date": _("End date"),
+            "reason": _("Reason"),
+            "other_reason": _("Other reason"),
+            "receipt": _("Receipt"),
+        }
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "other_reason": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["user"].queryset = User.objects.filter(role=User.Roles.EMPLOYEE)
+        for field in self.fields.values():
+            field.widget.attrs.update({"class": "input"})
+
+    def clean(self):
+        cleaned = super().clean()
+        start_date = cleaned.get("start_date")
+        end_date = cleaned.get("end_date")
+        reason = cleaned.get("reason")
+        other_reason = cleaned.get("other_reason")
+
+        if start_date and end_date and end_date < start_date:
+            self.add_error("end_date", _("End date must be after start date."))
+
+        if reason == AbsenceJustification.Reasons.OTHER and not other_reason:
+            self.add_error("other_reason", _("Please describe the reason."))
+
+        return cleaned

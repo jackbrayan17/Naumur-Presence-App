@@ -4,7 +4,10 @@ from datetime import time
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from pathlib import Path
+
 from django.utils import timezone
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from .utils import WORK_END_TIME, INTERN_END_TIME
@@ -13,6 +16,7 @@ from .utils import WORK_END_TIME, INTERN_END_TIME
 class Department(models.Model):
     code = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -79,6 +83,62 @@ class User(AbstractUser):
         seed = f"{self.username}{self.first_name}{self.last_name}"
         total = sum(ord(char) for char in seed) if seed else 0
         return palette[total % len(palette)]
+
+
+def justification_upload_path(instance, filename: str) -> str:
+    safe_name = slugify(
+        instance.user.get_full_name() or instance.user.username or "user"
+    ) or "user"
+    start = instance.start_date.isoformat()
+    end = instance.end_date.isoformat()
+    period = f"{start}_to_{end}"
+    safe_file = Path(filename).name
+    return f"justifications/{safe_name}/{period}/{safe_file}"
+
+
+class AbsenceJustification(models.Model):
+    class Reasons(models.TextChoices):
+        MEDICAL = "medical", _("Medical")
+        FUNERAL = "funeral", _("Funeral")
+        PERSONAL = "personal", _("Personal")
+        OFFICIAL = "official", _("Official")
+        OTHER = "other", _("Other")
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="justifications"
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="created_justifications"
+    )
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(max_length=20, choices=Reasons.choices)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    approved_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="approved_justifications",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_note = models.TextField(blank=True)
+    other_reason = models.TextField(blank=True)
+    receipt = models.FileField(upload_to=justification_upload_path, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-start_date", "user__last_name"]
+
+    def __str__(self) -> str:
+        return f"{self.user} - {self.start_date.isoformat()} to {self.end_date.isoformat()}"
 
 
 class AttendanceDay(models.Model):
@@ -158,6 +218,7 @@ class SystemLog(models.Model):
     EVENT_VERIFY = "verify"
     EVENT_EXPORT = "export"
     EVENT_BACKUP = "backup"
+    EVENT_JUSTIFICATION = "justification"
 
     event_type = models.CharField(max_length=50)
     message = models.TextField()

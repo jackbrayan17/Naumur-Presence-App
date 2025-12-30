@@ -25,9 +25,11 @@
               type="button"
               class="icon-btn toggle-password"
               data-target="id_password"
+              data-show-label="{% trans 'Show password' %}"
+              data-hide-label="{% trans 'Hide password' %}"
               aria-label="{% trans 'Show password' %}"
             >
-              <span class="icon-eye" aria-hidden="true"></span>
+              <i class="fa-regular fa-eye password-toggle-icon" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -39,12 +41,24 @@
     </section>
     <section class="card auth-card accent-card">
       <h2>{% trans "Naumur Presence App" %}</h2>
-      <ul class="feature-list">
-        <li>{% trans "Weekly check-in and check-out." %}</li>
-        <li>{% trans "Supervisor verification workflow." %}</li>
-        <li>{% trans "Department presence analytics." %}</li>
-        <li>{% trans "History exports to CSV and XLSX." %}</li>
-      </ul>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></div>
+          <div>{% trans "Weekly check-in and check-out." %}</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></div>
+          <div>{% trans "Supervisor verification workflow." %}</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+          <div>{% trans "Department presence analytics." %}</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-file-export" aria-hidden="true"></i></div>
+          <div>{% trans "History exports to CSV and XLSX." %}</div>
+        </div>
+      </div>
     </section>
   </div>
 {% endblock %}

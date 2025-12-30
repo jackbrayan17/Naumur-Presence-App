@@ -37,13 +37,13 @@
             <tr>
               <td>{{ week.label }}</td>
               <td>
-                <a class="btn btn-outline" href="{% url 'history_week' week.start %}">
+                <a class="btn btn-outline" href="{% url 'history_week' week.start|date:'Y-m-d' %}">
                   {% trans "Open table" %}
                 </a>
               </td>
               <td>
-                <a class="btn btn-outline" href="{% url 'history_export' week.start 'csv' %}">CSV</a>
-                <a class="btn btn-outline" href="{% url 'history_export' week.start 'xlsx' %}">XLSX</a>
+                <a class="btn btn-outline" href="{% url 'history_export' week.start|date:'Y-m-d' 'csv' %}">CSV</a>
+                <a class="btn btn-outline" href="{% url 'history_export' week.start|date:'Y-m-d' 'xlsx' %}">XLSX</a>
               </td>
             </tr>
           {% empty %}

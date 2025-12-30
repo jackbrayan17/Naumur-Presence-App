@@ -25,6 +25,9 @@ msgstr "Mot de passe"
 msgid "Show password"
 msgstr "Afficher le mot de passe"
 
+msgid "Hide password"
+msgstr "Masquer le mot de passe"
+
 msgid "Keep me signed in"
 msgstr "Garder ma session ouverte"
 
@@ -276,6 +279,57 @@ msgstr "Departement cree."
 
 msgid "Profile picture updated."
 msgstr "Photo de profil mise a jour."
+
+msgid "Only today can be edited. Past and future days are locked."
+msgstr "Seul aujourd hui est modifiable. Les jours passes et futurs sont bloques."
+
+msgid "Save today attendance"
+msgstr "Enregistrer la presence du jour"
+
+msgid "Medical"
+msgstr "Medical"
+
+msgid "Funeral"
+msgstr "Funerailles"
+
+msgid "Personal"
+msgstr "Personnel"
+
+msgid "Official"
+msgstr "Officiel"
+
+msgid "Other"
+msgstr "Autre"
+
+msgid "Add absence justification"
+msgstr "Ajouter une justification d absence"
+
+msgid "Reason"
+msgstr "Motif"
+
+msgid "Other reason"
+msgstr "Autre motif"
+
+msgid "Receipt"
+msgstr "Justificatif"
+
+msgid "Save justification"
+msgstr "Enregistrer la justification"
+
+msgid "Justification saved."
+msgstr "Justification enregistree."
+
+msgid "Optional for medical or funeral reasons."
+msgstr "Optionnel pour les motifs medicaux ou funerailles."
+
+msgid "End date"
+msgstr "Date de fin"
+
+msgid "End date must be after start date."
+msgstr "La date de fin doit etre apres la date de debut."
+
+msgid "Please describe the reason."
+msgstr "Veuillez decrire le motif."
 
 msgid "Access denied."
 msgstr "Acces refuse."
