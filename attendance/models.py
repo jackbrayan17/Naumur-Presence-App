@@ -35,6 +35,8 @@ class User(AbstractUser):
         Department, on_delete=models.SET_NULL, null=True, blank=True
     )
     is_intern = models.BooleanField(default=False)
+    start_date = models.DateField(default=timezone.localdate)
+    profile_image = models.ImageField(upload_to="profiles/", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.get_full_name() or self.username
@@ -53,6 +55,30 @@ class User(AbstractUser):
 
     def expected_end_time(self) -> time:
         return INTERN_END_TIME if self.is_intern else WORK_END_TIME
+
+    def initials(self) -> str:
+        full_name = f"{self.first_name} {self.last_name}".strip()
+        parts = [part for part in full_name.split() if part]
+        if len(parts) >= 2:
+            return f"{parts[0][0]}{parts[1][0]}".upper()
+        if len(parts) == 1:
+            return parts[0][:2].upper()
+        return (self.username or "U")[:2].upper()
+
+    def avatar_color(self) -> str:
+        palette = [
+            "#6F3CFF",
+            "#9C5BFF",
+            "#F05CFF",
+            "#24B47E",
+            "#FF7A59",
+            "#1F8EFA",
+            "#F2C94C",
+            "#5E60CE",
+        ]
+        seed = f"{self.username}{self.first_name}{self.last_name}"
+        total = sum(ord(char) for char in seed) if seed else 0
+        return palette[total % len(palette)]
 
 
 class AttendanceDay(models.Model):

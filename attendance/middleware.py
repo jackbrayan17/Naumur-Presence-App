@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone as dt_timezone
 
 from django.utils import timezone
 
@@ -18,7 +18,7 @@ class ActivityMiddleware:
         now = timezone.now()
         last_seen_ts = request.session.get("last_seen_ts")
         if last_seen_ts:
-            last_seen = timezone.datetime.fromtimestamp(last_seen_ts, tz=timezone.utc)
+            last_seen = datetime.fromtimestamp(last_seen_ts, tz=dt_timezone.utc)
             if now - last_seen < timedelta(minutes=1):
                 return response
 

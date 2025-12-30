@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Profile" %} | Naumur Presence App{% endblock %}
+
+{% block content %}
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h1>{% trans "Profile" %}</h1>
+        <p class="muted">{% trans "Update your profile picture." %}</p>
+      </div>
+    </div>
+
+    <div class="profile-row">
+      {% if user.profile_image %}
+        <img class="profile-avatar" src="{{ user.profile_image.url }}" alt="{{ user.get_full_name|default:user.username }}" />
+      {% else %}
+        <div class="profile-avatar avatar-fallback" style="background: {{ user.avatar_color }};">
+          {{ user.initials }}
+        </div>
+      {% endif %}
+      <div>
+        <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+        <div class="muted">{% trans "Start date" %}: {{ user.start_date }}</div>
+      </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="form">
+      {% csrf_token %}
+      <div class="field">
+        <label for="{{ form.profile_image.id_for_label }}">{% trans "Profile picture" %}</label>
+        {{ form.profile_image }}
+        {{ form.profile_image.errors }}
+      </div>
+      <button class="btn btn-primary" type="submit">{% trans "Save" %}</button>
+    </form>
+  </section>
+{% endblock %}

@@ -205,6 +205,78 @@ msgstr "Surveillant"
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
+msgid "Profile"
+msgstr "Profil"
+
+msgid "Update your profile picture."
+msgstr "Mettre a jour votre photo de profil."
+
+msgid "Start date"
+msgstr "Date de debut"
+
+msgid "Profile picture"
+msgstr "Photo de profil"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Employee cards"
+msgstr "Cartes des employes"
+
+msgid "Employee details"
+msgstr "Details de l employe"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Total hours"
+msgstr "Heures totales"
+
+msgid "Total absences"
+msgstr "Absences totales"
+
+msgid "Absent hours"
+msgstr "Heures d absence"
+
+msgid "Online"
+msgstr "En ligne"
+
+msgid "Offline"
+msgstr "Hors ligne"
+
+msgid "Create employee"
+msgstr "Creer un employe"
+
+msgid "Create department"
+msgstr "Creer un departement"
+
+msgid "Full name"
+msgstr "Nom complet"
+
+msgid "Confirm password"
+msgstr "Confirmer le mot de passe"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Username already exists."
+msgstr "Nom d utilisateur deja utilise."
+
+msgid "Passwords do not match."
+msgstr "Les mots de passe ne correspondent pas."
+
+msgid "Employee created."
+msgstr "Employe cree."
+
+msgid "Department created."
+msgstr "Departement cree."
+
+msgid "Profile picture updated."
+msgstr "Photo de profil mise a jour."
+
 msgid "Access denied."
 msgstr "Acces refuse."
 

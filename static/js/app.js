@@ -35,3 +35,55 @@ document.querySelectorAll(".toggle-password").forEach((button) => {
     button.setAttribute("aria-pressed", isPassword);
   });
 });
+
+const modal = document.getElementById("employee-modal");
+const modalClose = document.querySelector("[data-modal-close]");
+const modalTitle = document.getElementById("modal-title");
+const modalSubtitle = document.getElementById("modal-subtitle");
+const modalStart = document.getElementById("modal-start");
+const modalStatus = document.getElementById("modal-status");
+const modalHours = document.getElementById("modal-hours");
+const modalAbsences = document.getElementById("modal-absences");
+const modalAbsentHours = document.getElementById("modal-absent-hours");
+
+function closeModal() {
+  if (!modal) return;
+  modal.classList.remove("active");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function openModal(card) {
+  if (!modal || !card || !modalTitle) return;
+  const name = card.dataset.name || "";
+  modalTitle.textContent = name || modalTitle.textContent;
+  if (modalSubtitle) modalSubtitle.textContent = card.dataset.status || "";
+  if (modalStart) modalStart.textContent = card.dataset.start || "--";
+  if (modalStatus) modalStatus.textContent = card.dataset.status || "--";
+  if (modalHours) modalHours.textContent = card.dataset.hours || "0";
+  if (modalAbsences) modalAbsences.textContent = card.dataset.absences || "0";
+  if (modalAbsentHours) modalAbsentHours.textContent = card.dataset.absentHours || "0";
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+document.querySelectorAll(".employee-card").forEach((card) => {
+  card.addEventListener("click", () => openModal(card));
+});
+
+if (modalClose) {
+  modalClose.addEventListener("click", closeModal);
+}
+
+if (modal) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeModal();
+  }
+});

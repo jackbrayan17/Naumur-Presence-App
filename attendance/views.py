@@ -16,8 +16,13 @@ from django.utils.translation import gettext as _
 
 from openpyxl import Workbook
 
-from .forms import LoginForm
-from .models import AttendanceDay, Department, SystemLog, User
+from .forms import (
+    DepartmentCreateForm,
+    EmployeeCreateForm,
+    LoginForm,
+    ProfileImageForm,
+)
+from .models import AttendanceDay, Department, SystemLog, User, UserDailyLogin
 from .utils import (
     WORK_START_TIME,
     expected_daily_hours,
@@ -110,6 +115,22 @@ def login_view(request):
 def logout_view(request):
     auth_logout(request)
     return redirect("login")
+
+
+@login_required
+def profile_view(request):
+    user = request.user
+    if request.method == "POST":
+        form = ProfileImageForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            updated_user = form.save(commit=False)
+            updated_user.save(update_fields=["profile_image"])
+            messages.success(request, _("Profile picture updated."))
+            return redirect("profile")
+    else:
+        form = ProfileImageForm(instance=user)
+
+    return render(request, "profile.html", {"form": form})
 
 
 @login_required
@@ -296,6 +317,24 @@ def supervisor_verify(request):
     today = timezone.localdate()
     supervisor_record, _ = AttendanceDay.objects.get_or_create(user=user, date=today)
 
+    if request.method == "POST" and "create_department" in request.POST:
+        department_form = DepartmentCreateForm(request.POST)
+        if department_form.is_valid():
+            department_form.save()
+            messages.success(request, _("Department created."))
+            return redirect("supervisor_verify")
+        employee_form = EmployeeCreateForm()
+    elif request.method == "POST" and "create_employee" in request.POST:
+        employee_form = EmployeeCreateForm(request.POST)
+        if employee_form.is_valid():
+            employee_form.save()
+            messages.success(request, _("Employee created."))
+            return redirect("supervisor_verify")
+        department_form = DepartmentCreateForm()
+    else:
+        employee_form = EmployeeCreateForm()
+        department_form = DepartmentCreateForm()
+
     if request.method == "POST" and "check_in" in request.POST:
         if supervisor_record.arrival_time is None:
             supervisor_record.arrival_time = now_local_time()
@@ -312,7 +351,12 @@ def supervisor_verify(request):
         return render(
             request,
             "supervisor_verify.html",
-            {"needs_checkin": True, "today": today},
+            {
+                "needs_checkin": True,
+                "today": today,
+                "employee_form": employee_form,
+                "department_form": department_form,
+            },
         )
 
     if request.method == "POST" and "verify_selected" in request.POST:
@@ -368,6 +412,8 @@ def supervisor_verify(request):
         "supervisor_record": supervisor_record,
         "employees": employees,
         "current_week_start": get_week_start(today),
+        "employee_form": employee_form,
+        "department_form": department_form,
     }
     return render(request, "supervisor_verify.html", context)
 
@@ -413,7 +459,13 @@ def admin_dashboard(request):
             }
         )
 
+    daily_logins = {
+        record.user_id: record.online
+        for record in UserDailyLogin.objects.filter(date=today)
+    }
+
     employee_rows = []
+    employee_cards = []
     for employee in employees.select_related("department"):
         records = list(
             AttendanceDay.objects.filter(
@@ -440,12 +492,48 @@ def admin_dashboard(request):
             }
         )
 
+        total_start = employee.start_date
+        total_end = today
+        total_working_days = (
+            working_days_between(total_start, total_end)
+            if total_start <= total_end
+            else 0
+        )
+        total_records = list(
+            AttendanceDay.objects.filter(
+                user=employee, date__range=(total_start, total_end)
+            )
+        )
+        total_present_days = sum(
+            1 for record in total_records if record.arrival_time is not None
+        )
+        total_present_hours = sum(
+            hours_between(record.arrival_time, record.departure_time)
+            for record in total_records
+            if record.arrival_time and record.departure_time
+        )
+        total_expected_hours = expected_daily_hours(employee.is_intern) * total_working_days
+        total_absent_hours = max(total_expected_hours - total_present_hours, 0)
+        total_absent_days = max(total_working_days - total_present_days, 0)
+
+        employee_cards.append(
+            {
+                "employee": employee,
+                "start_date": employee.start_date,
+                "status": _("Online") if daily_logins.get(employee.id) else _("Offline"),
+                "present_hours": total_present_hours,
+                "absent_hours": total_absent_hours,
+                "absent_days": total_absent_days,
+            }
+        )
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
         "dept_rows": dept_rows,
         "employee_rows": employee_rows,
         "current_week_start": get_week_start(timezone.localdate()),
+        "employee_cards": employee_cards,
     }
     return render(request, "admin_dashboard.html", context)
 

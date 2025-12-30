@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.core.exceptions import PermissionDenied
 
 from .models import (
     AttendanceDay,
@@ -16,13 +17,13 @@ class UserAdmin(DjangoUserAdmin):
     fieldsets = DjangoUserAdmin.fieldsets + (
         (
             "Role and Department",
-            {"fields": ("role", "department", "is_intern")},
+            {"fields": ("role", "department", "is_intern", "start_date", "profile_image")},
         ),
     )
     add_fieldsets = DjangoUserAdmin.add_fieldsets + (
         (
             "Role and Department",
-            {"fields": ("role", "department", "is_intern")},
+            {"fields": ("role", "department", "is_intern", "start_date", "profile_image")},
         ),
     )
     list_display = (
@@ -35,6 +36,13 @@ class UserAdmin(DjangoUserAdmin):
         "is_staff",
     )
     list_filter = ("role", "department", "is_intern")
+
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_admin:
+            if form.cleaned_data.get("role") == User.Roles.SUPERVISOR:
+                if not change or form.initial.get("role") != User.Roles.SUPERVISOR:
+                    raise PermissionDenied("Only admins can assign supervisor role.")
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Department)

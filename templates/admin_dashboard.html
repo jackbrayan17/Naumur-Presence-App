@@ -23,6 +23,33 @@
       </form>
     </div>
 
+    <h2>{% trans "Employee cards" %}</h2>
+    <div class="card-grid">
+      {% for card in employee_cards %}
+        <div
+          class="employee-card"
+          data-name="{{ card.employee.get_full_name|default:card.employee.username }}"
+          data-start="{{ card.start_date }}"
+          data-status="{{ card.status }}"
+          data-hours="{{ card.present_hours|floatformat:1 }}"
+          data-absences="{{ card.absent_days }}"
+          data-absent-hours="{{ card.absent_hours|floatformat:1 }}"
+        >
+          {% if card.employee.profile_image %}
+            <img class="avatar-img" src="{{ card.employee.profile_image.url }}" alt="{{ card.employee.get_full_name|default:card.employee.username }}" />
+          {% else %}
+            <div class="avatar-fallback" style="background: {{ card.employee.avatar_color }};">
+              {{ card.employee.initials }}
+            </div>
+          {% endif %}
+          <div class="card-name">{{ card.employee.get_full_name|default:card.employee.username }}</div>
+          <div class="card-meta">{{ card.employee.department.name|default:"-" }}</div>
+        </div>
+      {% empty %}
+        <div class="row-muted">{% trans "No employees found." %}</div>
+      {% endfor %}
+    </div>
+
     <h2>{% trans "Presence rate by department" %}</h2>
     <div class="table-wrap">
       <table class="data-table">
@@ -91,4 +118,38 @@
       </table>
     </div>
   </section>
+
+  <div class="modal" id="employee-modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-title">{% trans "Employee details" %}</h2>
+          <p class="muted" id="modal-subtitle"></p>
+        </div>
+        <button class="modal-close" type="button" data-modal-close>x</button>
+      </div>
+      <div class="modal-grid">
+        <div class="modal-item">
+          <div class="muted">{% trans "Start date" %}</div>
+          <div id="modal-start"></div>
+        </div>
+        <div class="modal-item">
+          <div class="muted">{% trans "Status" %}</div>
+          <div id="modal-status"></div>
+        </div>
+        <div class="modal-item">
+          <div class="muted">{% trans "Total hours" %}</div>
+          <div id="modal-hours"></div>
+        </div>
+        <div class="modal-item">
+          <div class="muted">{% trans "Total absences" %}</div>
+          <div id="modal-absences"></div>
+        </div>
+        <div class="modal-item">
+          <div class="muted">{% trans "Absent hours" %}</div>
+          <div id="modal-absent-hours"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

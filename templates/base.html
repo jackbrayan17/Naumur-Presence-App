@@ -22,9 +22,20 @@
         {% endif %}
       </div>
       <div class="nav-center">
-        <img class="logo" src="{% static 'logo.png' %}" alt="Naumur logo" />
+        <img class="logo" src="{% static 'logo.jpg' %}" alt="Naumur logo" />
       </div>
       <div class="nav-right">
+        {% if user.is_authenticated %}
+          <a class="avatar-link" href="{% url 'profile' %}">
+            {% if user.profile_image %}
+              <img class="avatar-img" src="{{ user.profile_image.url }}" alt="{{ user.get_full_name|default:user.username }}" />
+            {% else %}
+              <span class="avatar-fallback" style="background: {{ user.avatar_color }};">
+                {{ user.initials }}
+              </span>
+            {% endif %}
+          </a>
+        {% endif %}
         <form class="lang-switch" action="{% url 'set_language' %}" method="post">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}" />
@@ -43,6 +54,7 @@
       {% if user.is_authenticated %}
         <nav class="subnav">
           <a class="chip" href="{% url 'employee_week' %}">{% trans "My week" %}</a>
+          <a class="chip" href="{% url 'profile' %}">{% trans "Profile" %}</a>
           {% if user.is_supervisor %}
             <a class="chip" href="{% url 'supervisor_verify' %}">{% trans "Supervisor" %}</a>
           {% endif %}

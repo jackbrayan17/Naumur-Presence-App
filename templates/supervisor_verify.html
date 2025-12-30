@@ -98,5 +98,69 @@
         </table>
       </div>
     {% endif %}
+
+    <div class="grid-two">
+      <div class="card muted-card">
+        <h2>{% trans "Create employee" %}</h2>
+        <form method="post" class="form">
+          {% csrf_token %}
+          {{ employee_form.non_field_errors }}
+          <div class="field">
+            <label for="{{ employee_form.full_name.id_for_label }}">{% trans "Full name" %}</label>
+            {{ employee_form.full_name }}
+            {{ employee_form.full_name.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ employee_form.username.id_for_label }}">{% trans "Username" %}</label>
+            {{ employee_form.username }}
+            {{ employee_form.username.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ employee_form.password.id_for_label }}">{% trans "Password" %}</label>
+            {{ employee_form.password }}
+            {{ employee_form.password.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ employee_form.confirm_password.id_for_label }}">{% trans "Confirm password" %}</label>
+            {{ employee_form.confirm_password }}
+            {{ employee_form.confirm_password.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ employee_form.department.id_for_label }}">{% trans "Department" %}</label>
+            {{ employee_form.department }}
+            {{ employee_form.department.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ employee_form.start_date.id_for_label }}">{% trans "Start date" %}</label>
+            {{ employee_form.start_date }}
+            {{ employee_form.start_date.errors }}
+          </div>
+          <button class="btn btn-primary" name="create_employee" value="1" type="submit">
+            {% trans "Create employee" %}
+          </button>
+        </form>
+      </div>
+
+      <div class="card muted-card">
+        <h2>{% trans "Create department" %}</h2>
+        <form method="post" class="form">
+          {% csrf_token %}
+          {{ department_form.non_field_errors }}
+          <div class="field">
+            <label for="{{ department_form.code.id_for_label }}">{% trans "Code" %}</label>
+            {{ department_form.code }}
+            {{ department_form.code.errors }}
+          </div>
+          <div class="field">
+            <label for="{{ department_form.name.id_for_label }}">{% trans "Name" %}</label>
+            {{ department_form.name }}
+            {{ department_form.name.errors }}
+          </div>
+          <button class="btn btn-outline" name="create_department" value="1" type="submit">
+            {% trans "Create department" %}
+          </button>
+        </form>
+      </div>
+    </div>
   </section>
 {% endblock %}

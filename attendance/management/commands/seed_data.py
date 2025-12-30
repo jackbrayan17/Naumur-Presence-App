@@ -27,11 +27,14 @@ class Command(BaseCommand):
             dept.save(update_fields=["name"])
             dept_objs.append(dept)
 
+        default_start = date(2025, 6, 1)
+
         if not User.objects.filter(username="superadmin").exists():
             User.objects.create_superuser(
                 username="superadmin",
                 password="SuperAdmin123!",
                 role=User.Roles.ADMIN,
+                start_date=default_start,
             )
 
         if not User.objects.filter(username="admin1").exists():
@@ -43,6 +46,7 @@ class Command(BaseCommand):
                 first_name="Arlette",
                 last_name="Nkoum",
                 department=dept_objs[0],
+                start_date=default_start,
             )
 
         supervisors = []
@@ -59,6 +63,7 @@ class Command(BaseCommand):
                     first_name=first_name,
                     last_name=last_name,
                     department=dept,
+                    start_date=default_start,
                 )
             else:
                 supervisor = User.objects.get(username=username)
@@ -100,6 +105,7 @@ class Command(BaseCommand):
                     first_name=first_name,
                     last_name=last_name,
                     department=dept_objs[index % len(dept_objs)],
+                    start_date=default_start,
                 )
             employees.append(employee)
 
