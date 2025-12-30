@@ -351,3 +351,123 @@ msgstr "Debut de semaine invalide."
 
 msgid "Format not supported."
 msgstr "Format non supporte."
+
+msgid "Save day"
+msgstr "Enregistrer le jour"
+
+msgid "Only today can be submitted."
+msgstr "Seul aujourd hui peut etre soumis."
+
+msgid "Select a valid day to save."
+msgstr "Selectionnez un jour valide."
+
+msgid "This day is before the employee start date."
+msgstr "Ce jour est avant la date de debut de l employe."
+
+msgid "No changes to save for this day."
+msgstr "Aucun changement a enregistrer pour ce jour."
+
+msgid "Department status"
+msgstr "Statut des departements"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Inactive"
+msgstr "Inactif"
+
+msgid "Deactivate"
+msgstr "Desactiver"
+
+msgid "Restore"
+msgstr "Restaurer"
+
+msgid "No departments found."
+msgstr "Aucun departement trouve."
+
+msgid "Department trends"
+msgstr "Tendances des departements"
+
+msgid "Weekly and monthly presence rates by department."
+msgstr "Taux de presence hebdomadaire et mensuel par departement."
+
+msgid "Download weekly snapshot"
+msgstr "Telecharger l instantane hebdomadaire"
+
+msgid "Download monthly snapshot"
+msgstr "Telecharger l instantane mensuel"
+
+msgid "Weekly trend"
+msgstr "Tendance hebdomadaire"
+
+msgid "Monthly trend"
+msgstr "Tendance mensuelle"
+
+msgid "Inactive employees"
+msgstr "Employes inactifs"
+
+msgid "No inactive employees."
+msgstr "Aucun employe inactif."
+
+msgid "Employee restored."
+msgstr "Employe restaure."
+
+msgid "Employee deactivated."
+msgstr "Employe desactive."
+
+msgid "Department restored."
+msgstr "Departement restaure."
+
+msgid "Department deactivated."
+msgstr "Departement desactive."
+
+msgid "Justification approvals"
+msgstr "Approbations des justifications"
+
+msgid "All"
+msgstr "Tous"
+
+msgid "Search"
+msgstr "Recherche"
+
+msgid "Period"
+msgstr "Periode"
+
+msgid "View file"
+msgstr "Voir le fichier"
+
+msgid "Approved"
+msgstr "Approuve"
+
+msgid "Rejected"
+msgstr "Rejete"
+
+msgid "Approve"
+msgstr "Approuver"
+
+msgid "Reject"
+msgstr "Rejeter"
+
+msgid "Rejection note (optional)"
+msgstr "Note de rejet (optionnel)"
+
+msgid "No justifications found."
+msgstr "Aucune justification trouvee."
+
+msgid "Justification approved."
+msgstr "Justification approuvee."
+
+msgid "Justification rejected."
+msgstr "Justification rejetee."
+
+msgid "All departments"
+msgstr "Tous les departements"
+
+msgid "Activity timeline"
+msgstr "Chronologie des activites"
+
+msgid "By"
+msgstr "Par"
+
+msgid "No activity yet."
+msgstr "Aucune activite pour le moment."

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import calendar
 import csv
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -12,6 +13,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.db import models
 from django.utils.translation import gettext as _
 
 from openpyxl import Workbook
@@ -23,7 +25,15 @@ from .forms import (
     LoginForm,
     ProfileImageForm,
 )
-from .models import AttendanceDay, Department, SystemLog, User, UserDailyLogin
+from .models import (
+    AbsenceJustification,
+    AttendanceDay,
+    Department,
+    SystemLog,
+    User,
+    UserActivity,
+    UserDailyLogin,
+)
 from .utils import (
     WORK_START_TIME,
     expected_daily_hours,
@@ -49,10 +59,29 @@ def _log_event(request, event_type: str, message: str, meta: dict | None = None)
     )
 
 
-def _build_week_matrix(week_start_date):
+def _log_activity(
+    subject_user: User,
+    actor: User | None,
+    event_type: str,
+    message: str,
+    meta: dict | None = None,
+) -> None:
+    UserActivity.objects.create(
+        user=subject_user,
+        actor=actor,
+        event_type=event_type,
+        message=message,
+        meta=meta or {},
+    )
+
+
+def _build_week_matrix(week_start_date, department_id=None, search=None, include_inactive=False):
     week_days = get_week_days(week_start_date)
     week_end = week_start_date + timedelta(days=6)
-    departments = list(Department.objects.all())
+    dept_qs = Department.objects.all()
+    if not include_inactive:
+        dept_qs = dept_qs.filter(is_active=True)
+    departments = list(dept_qs)
     dept_tables = []
     dept_map = {}
     for dept in departments:
@@ -62,10 +91,21 @@ def _build_week_matrix(week_start_date):
 
     unassigned_table = {"department": None, "label": _("Unassigned"), "rows": []}
 
+    employee_qs = User.objects.filter(role=User.Roles.EMPLOYEE)
+    if not include_inactive:
+        employee_qs = employee_qs.filter(is_active=True)
+    if department_id:
+        employee_qs = employee_qs.filter(department_id=department_id)
+    if search:
+        employee_qs = employee_qs.filter(
+            models.Q(first_name__icontains=search)
+            | models.Q(last_name__icontains=search)
+            | models.Q(username__icontains=search)
+        )
     employees = list(
-        User.objects.filter(role=User.Roles.EMPLOYEE)
-        .select_related("department")
-        .order_by("department__name", "last_name", "first_name")
+        employee_qs.select_related("department").order_by(
+            "department__name", "last_name", "first_name"
+        )
     )
     records = AttendanceDay.objects.filter(
         user__in=employees, date__range=(week_start_date, week_end)
@@ -93,6 +133,82 @@ def _build_week_matrix(week_start_date):
         dept_tables.append(unassigned_table)
 
     return week_days, dept_tables
+
+
+def _add_months(day: date, months: int) -> date:
+    year_offset, month_index = divmod(day.month - 1 + months, 12)
+    return date(day.year + year_offset, month_index + 1, 1)
+
+
+def _build_periods(start_date: date, count: int, unit: str) -> list[dict]:
+    periods = []
+    if unit == "week":
+        for offset in range(count):
+            week_start = start_date + timedelta(days=7 * offset)
+            periods.append(
+                {
+                    "start": week_start,
+                    "end": week_start + timedelta(days=6),
+                    "label": week_start.isoformat(),
+                }
+            )
+    elif unit == "month":
+        for offset in range(count):
+            month_start = _add_months(start_date, offset)
+            last_day = calendar.monthrange(month_start.year, month_start.month)[1]
+            month_end = date(month_start.year, month_start.month, last_day)
+            periods.append(
+                {
+                    "start": month_start,
+                    "end": month_end,
+                    "label": month_start.strftime("%Y-%m"),
+                }
+            )
+    return periods
+
+
+def _build_department_trends(departments, employees, periods, today: date):
+    palette = [
+        "#6F3CFF",
+        "#9C5BFF",
+        "#F05CFF",
+        "#24B47E",
+        "#FF7A59",
+        "#1F8EFA",
+        "#F2C94C",
+        "#5E60CE",
+    ]
+    datasets = []
+    for index, dept in enumerate(departments):
+        dept_employees = [employee for employee in employees if employee.department_id == dept.id]
+        series = []
+        for period in periods:
+            period_end = min(period["end"], today)
+            expected = 0
+            for employee in dept_employees:
+                employee_start = max(period["start"], employee.start_date)
+                if employee_start <= period_end:
+                    expected += working_days_between(employee_start, period_end)
+            present = AttendanceDay.objects.filter(
+                user__in=dept_employees,
+                date__range=(period["start"], period_end),
+                arrival_time__isnull=False,
+            ).count()
+            rate = (present / expected * 100) if expected else 0
+            series.append(round(rate, 1))
+
+        color = palette[index % len(palette)]
+        datasets.append(
+            {
+                "label": dept.name,
+                "data": series,
+                "borderColor": color,
+                "backgroundColor": color,
+                "tension": 0.35,
+            }
+        )
+
+    return {"labels": [period["label"] for period in periods], "datasets": datasets}
 
 
 def login_view(request):
@@ -131,7 +247,13 @@ def profile_view(request):
     else:
         form = ProfileImageForm(instance=user)
 
-    return render(request, "profile.html", {"form": form})
+    activities = (
+        UserActivity.objects.filter(user=user)
+        .select_related("actor")
+        .order_by("-created_at")[:20]
+    )
+
+    return render(request, "profile.html", {"form": form, "activities": activities})
 
 
 @login_required
@@ -248,6 +370,13 @@ def employee_week(request):
                     "employee": target_user.username,
                     "day": save_day.isoformat(),
                 },
+            )
+            _log_activity(
+                target_user,
+                viewer,
+                "attendance",
+                f"Attendance updated for {save_day.isoformat()}",
+                {"day": save_day.isoformat()},
             )
             messages.success(request, _("Attendance saved."))
         else:
@@ -380,8 +509,68 @@ def supervisor_verify(request):
                 f"Justification added by {user.username}",
                 {"employee": justification.user.username},
             )
+            _log_activity(
+                justification.user,
+                user,
+                "justification_submitted",
+                "Absence justification submitted.",
+                {"start": justification.start_date.isoformat(), "end": justification.end_date.isoformat()},
+            )
             messages.success(request, _("Justification saved."))
             return redirect("supervisor_verify")
+    elif request.method == "POST" and "approve_justification" in request.POST:
+        justification_id = request.POST.get("approve_justification")
+        justification = AbsenceJustification.objects.filter(id=justification_id).first()
+        if justification and justification.status == AbsenceJustification.Status.PENDING:
+            justification.status = AbsenceJustification.Status.APPROVED
+            justification.approved_by = user
+            justification.approved_at = timezone.now()
+            justification.rejection_note = ""
+            justification.save(
+                update_fields=["status", "approved_by", "approved_at", "rejection_note"]
+            )
+            _log_event(
+                request,
+                SystemLog.EVENT_JUSTIFICATION,
+                f"Justification approved by {user.username}",
+                {"employee": justification.user.username},
+            )
+            _log_activity(
+                justification.user,
+                user,
+                "justification_approved",
+                "Absence justification approved.",
+                {"start": justification.start_date.isoformat(), "end": justification.end_date.isoformat()},
+            )
+            messages.success(request, _("Justification approved."))
+        return redirect("supervisor_verify")
+    elif request.method == "POST" and "reject_justification" in request.POST:
+        justification_id = request.POST.get("reject_justification")
+        rejection_note = request.POST.get("rejection_note", "").strip()
+        justification = AbsenceJustification.objects.filter(id=justification_id).first()
+        if justification and justification.status == AbsenceJustification.Status.PENDING:
+            justification.status = AbsenceJustification.Status.REJECTED
+            justification.approved_by = user
+            justification.approved_at = timezone.now()
+            justification.rejection_note = rejection_note
+            justification.save(
+                update_fields=["status", "approved_by", "approved_at", "rejection_note"]
+            )
+            _log_event(
+                request,
+                SystemLog.EVENT_JUSTIFICATION,
+                f"Justification rejected by {user.username}",
+                {"employee": justification.user.username},
+            )
+            _log_activity(
+                justification.user,
+                user,
+                "justification_rejected",
+                "Absence justification rejected.",
+                {"start": justification.start_date.isoformat(), "end": justification.end_date.isoformat()},
+            )
+            messages.success(request, _("Justification rejected."))
+        return redirect("supervisor_verify")
 
     if request.method == "POST" and "check_in" in request.POST:
         if supervisor_record.arrival_time is None:
@@ -416,6 +605,13 @@ def supervisor_verify(request):
             record.verified_at = timezone.now()
             record.save(update_fields=["verified_by", "verified_at"])
             verified += 1
+            _log_activity(
+                record.user,
+                user,
+                "verification",
+                "Attendance verified.",
+                {"date": record.date.isoformat()},
+            )
 
         if verified:
             _log_event(
@@ -446,12 +642,50 @@ def supervisor_verify(request):
         arrival_time__isnull=False,
         verified_by__isnull=True,
         user__role=User.Roles.EMPLOYEE,
+        user__is_active=True,
     ).select_related("user", "user__department")
 
     employees = (
-        User.objects.filter(role=User.Roles.EMPLOYEE)
+        User.objects.filter(role=User.Roles.EMPLOYEE, is_active=True)
         .select_related("department")
         .order_by("department__name", "last_name", "first_name")
+    )
+
+    just_status = request.GET.get("just_status") or ""
+    just_search = request.GET.get("just_search") or ""
+    just_start = parse_date(request.GET.get("just_start"))
+    just_end = parse_date(request.GET.get("just_end"))
+
+    justifications = AbsenceJustification.objects.select_related(
+        "user", "created_by", "approved_by"
+    )
+    if just_status:
+        justifications = justifications.filter(status=just_status)
+    if just_search:
+        justifications = justifications.filter(
+            models.Q(user__first_name__icontains=just_search)
+            | models.Q(user__last_name__icontains=just_search)
+            | models.Q(user__username__icontains=just_search)
+            | models.Q(other_reason__icontains=just_search)
+        )
+    if just_start:
+        justifications = justifications.filter(end_date__gte=just_start)
+    if just_end:
+        justifications = justifications.filter(start_date__lte=just_end)
+
+    departments = Department.objects.filter(is_active=True)
+    all_departments = Department.objects.all().order_by("name")
+    week_count = 8
+    monthly_count = 6
+    weekly_start = get_week_start(today) - timedelta(days=7 * (week_count - 1))
+    monthly_start = _add_months(date(today.year, today.month, 1), -(monthly_count - 1))
+    weekly_periods = _build_periods(weekly_start, week_count, "week")
+    monthly_periods = _build_periods(monthly_start, monthly_count, "month")
+    weekly_chart = _build_department_trends(
+        departments, list(employees), weekly_periods, today
+    )
+    monthly_chart = _build_department_trends(
+        departments, list(employees), monthly_periods, today
     )
 
     context = {
@@ -464,6 +698,13 @@ def supervisor_verify(request):
         "employee_form": employee_form,
         "department_form": department_form,
         "justification_form": justification_form,
+        "justifications": justifications,
+        "just_status": just_status,
+        "just_search": just_search,
+        "just_start": just_start.isoformat() if just_start else "",
+        "just_end": just_end.isoformat() if just_end else "",
+        "weekly_chart": weekly_chart,
+        "monthly_chart": monthly_chart,
     }
     return render(request, "supervisor_verify.html", context)
 
@@ -475,14 +716,45 @@ def admin_dashboard(request):
         return HttpResponseForbidden(_("Access denied."))
 
     today = timezone.localdate()
-    start_date = parse_date(request.GET.get("start")) or (today - timedelta(days=30))
-    end_date = parse_date(request.GET.get("end")) or today
+    start_value = request.POST.get("start") or request.GET.get("start")
+    end_value = request.POST.get("end") or request.GET.get("end")
+    start_date = parse_date(start_value) or (today - timedelta(days=30))
+    end_date = parse_date(end_value) or today
 
     if start_date > end_date:
         start_date, end_date = end_date, start_date
 
-    departments = Department.objects.all()
-    employees = User.objects.filter(role=User.Roles.EMPLOYEE)
+    if request.method == "POST" and "toggle_user" in request.POST:
+        target_id = request.POST.get("toggle_user")
+        target = User.objects.filter(id=target_id, role=User.Roles.EMPLOYEE).first()
+        if target:
+            target.is_active = not target.is_active
+            target.save(update_fields=["is_active"])
+            messages.success(
+                request,
+                _("Employee restored.") if target.is_active else _("Employee deactivated."),
+            )
+        return redirect(f"{request.path}?start={start_date.isoformat()}&end={end_date.isoformat()}")
+
+    if request.method == "POST" and "toggle_department" in request.POST:
+        target_id = request.POST.get("toggle_department")
+        department = Department.objects.filter(id=target_id).first()
+        if department:
+            department.is_active = not department.is_active
+            department.save(update_fields=["is_active"])
+            messages.success(
+                request,
+                _("Department restored.")
+                if department.is_active
+                else _("Department deactivated."),
+            )
+        return redirect(f"{request.path}?start={start_date.isoformat()}&end={end_date.isoformat()}")
+
+    departments = Department.objects.filter(is_active=True)
+    employees = User.objects.filter(role=User.Roles.EMPLOYEE, is_active=True)
+    inactive_employees = User.objects.filter(
+        role=User.Roles.EMPLOYEE, is_active=False
+    ).order_by("last_name", "first_name")
     effective_end = min(end_date, today)
 
     dept_rows = []
@@ -582,6 +854,15 @@ def admin_dashboard(request):
             }
         )
 
+    week_count = 8
+    monthly_count = 6
+    weekly_start = get_week_start(today) - timedelta(days=7 * (week_count - 1))
+    monthly_start = _add_months(date(today.year, today.month, 1), -(monthly_count - 1))
+    weekly_periods = _build_periods(weekly_start, week_count, "week")
+    monthly_periods = _build_periods(monthly_start, monthly_count, "month")
+    weekly_chart = _build_department_trends(departments, list(employees), weekly_periods, today)
+    monthly_chart = _build_department_trends(departments, list(employees), monthly_periods, today)
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
@@ -589,6 +870,10 @@ def admin_dashboard(request):
         "employee_rows": employee_rows,
         "current_week_start": get_week_start(timezone.localdate()),
         "employee_cards": employee_cards,
+        "inactive_employees": inactive_employees,
+        "all_departments": all_departments,
+        "weekly_chart": weekly_chart,
+        "monthly_chart": monthly_chart,
     }
     return render(request, "admin_dashboard.html", context)
 
@@ -638,12 +923,23 @@ def history_week(request, week_start: str):
     if not week_start_date:
         return HttpResponse(_("Invalid week start."), status=400)
 
-    week_days, dept_tables = _build_week_matrix(week_start_date)
+    department_id = request.GET.get("department")
+    search = request.GET.get("search")
+    week_days, dept_tables = _build_week_matrix(
+        week_start_date,
+        department_id=department_id,
+        search=search,
+        include_inactive=True,
+    )
+    departments = Department.objects.all()
     context = {
         "week_start": week_start_date,
         "week_end": week_start_date + timedelta(days=6),
         "week_days": week_days,
         "dept_tables": dept_tables,
+        "departments": departments,
+        "search": search or "",
+        "selected_department": department_id or "",
     }
     return render(request, "history_week.html", context)
 
@@ -658,7 +954,9 @@ def history_export(request, week_start: str, fmt: str):
     if not week_start_date:
         return HttpResponse(_("Invalid week start."), status=400)
 
-    week_days, dept_tables = _build_week_matrix(week_start_date)
+    week_days, dept_tables = _build_week_matrix(
+        week_start_date, include_inactive=True
+    )
 
     if fmt == "csv":
         response = HttpResponse(content_type="text/csv")

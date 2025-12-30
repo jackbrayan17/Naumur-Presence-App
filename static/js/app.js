@@ -112,3 +112,16 @@ if (justificationForm) {
     reasonSelect.addEventListener("change", toggleOtherReason);
   }
 }
+
+document.querySelectorAll("[data-chart-download]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const targetId = button.getAttribute("data-chart-target");
+    const filename = button.getAttribute("data-filename") || "chart.png";
+    const canvas = document.getElementById(targetId);
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png", 1.0);
+    link.download = filename;
+    link.click();
+  });
+});

@@ -234,3 +234,26 @@ class SystemLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event_type} - {self.created_at.isoformat()}"
+
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="activities"
+    )
+    actor = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="activity_actions",
+    )
+    event_type = models.CharField(max_length=50)
+    message = models.CharField(max_length=255)
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user} - {self.event_type}"

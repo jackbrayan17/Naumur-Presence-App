@@ -2,7 +2,7 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.dispatch import receiver
 from django.utils import timezone
 
-from .models import SystemLog, UserDailyLogin, UserSession
+from .models import SystemLog, UserActivity, UserDailyLogin, UserSession
 from .utils import get_client_ip
 
 
@@ -45,6 +45,13 @@ def handle_user_logged_in(sender, request, user, **kwargs):
         message=f"User {user.username} logged in",
         meta={"session_key": session_key},
     )
+    UserActivity.objects.create(
+        user=user,
+        actor=user,
+        event_type="login",
+        message="User logged in.",
+        meta={"session_key": session_key},
+    )
 
 
 @receiver(user_logged_out)
@@ -66,5 +73,12 @@ def handle_user_logged_out(sender, request, user, **kwargs):
         user=user,
         ip_address=ip_address,
         message=f"User {user.username} logged out",
+        meta={"session_key": session_key},
+    )
+    UserActivity.objects.create(
+        user=user,
+        actor=user,
+        event_type="logout",
+        message="User logged out.",
         meta={"session_key": session_key},
     )

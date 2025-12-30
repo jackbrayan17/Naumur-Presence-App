@@ -8,6 +8,7 @@ from .models import (
     Department,
     SystemLog,
     User,
+    UserActivity,
     UserDailyLogin,
     UserSession,
 )
@@ -38,6 +39,15 @@ class UserAdmin(DjangoUserAdmin):
         "is_staff",
     )
     list_filter = ("role", "department", "is_intern")
+    actions = ["deactivate_users", "restore_users"]
+
+    @admin.action(description="Deactivate selected users")
+    def deactivate_users(self, request, queryset):
+        queryset.update(is_active=False)
+
+    @admin.action(description="Restore selected users")
+    def restore_users(self, request, queryset):
+        queryset.update(is_active=True)
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_admin:
@@ -49,8 +59,18 @@ class UserAdmin(DjangoUserAdmin):
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "created_at")
+    list_display = ("name", "code", "is_active", "created_at")
+    list_filter = ("is_active",)
     search_fields = ("name", "code")
+    actions = ["deactivate_departments", "restore_departments"]
+
+    @admin.action(description="Deactivate selected departments")
+    def deactivate_departments(self, request, queryset):
+        queryset.update(is_active=False)
+
+    @admin.action(description="Restore selected departments")
+    def restore_departments(self, request, queryset):
+        queryset.update(is_active=True)
 
 
 @admin.register(AttendanceDay)
@@ -104,8 +124,24 @@ class SystemLogAdmin(admin.ModelAdmin):
     search_fields = ("message", "user__username")
 
 
+@admin.register(UserActivity)
+class UserActivityAdmin(admin.ModelAdmin):
+    list_display = ("user", "actor", "event_type", "created_at")
+    list_filter = ("event_type", "created_at")
+    search_fields = ("user__username", "message", "actor__username")
+
+
 @admin.register(AbsenceJustification)
 class AbsenceJustificationAdmin(admin.ModelAdmin):
-    list_display = ("user", "start_date", "end_date", "reason", "created_by", "created_at")
-    list_filter = ("reason", "start_date")
+    list_display = (
+        "user",
+        "start_date",
+        "end_date",
+        "reason",
+        "status",
+        "created_by",
+        "approved_by",
+        "created_at",
+    )
+    list_filter = ("reason", "status", "start_date")
     search_fields = ("user__username", "user__first_name", "user__last_name")

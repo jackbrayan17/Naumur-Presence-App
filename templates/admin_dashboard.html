@@ -77,6 +77,76 @@
         </tbody>
       </table>
     </div>
+
+    <h2>{% trans "Department status" %}</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Department" %}</th>
+            <th>{% trans "Code" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for department in all_departments %}
+            <tr>
+              <td>{{ department.name }}</td>
+              <td>{{ department.code }}</td>
+              <td>
+                {% if department.is_active %}
+                  <span class="badge success">{% trans "Active" %}</span>
+                {% else %}
+                  <span class="badge danger">{% trans "Inactive" %}</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="table-actions">
+                  {% csrf_token %}
+                  <input type="hidden" name="start" value="{{ start_date }}" />
+                  <input type="hidden" name="end" value="{{ end_date }}" />
+                  <button class="btn btn-outline btn-sm" name="toggle_department" value="{{ department.id }}" type="submit">
+                    {% if department.is_active %}{% trans "Deactivate" %}{% else %}{% trans "Restore" %}{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="row-muted">{% trans "No departments found." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>{% trans "Department trends" %}</h2>
+        <p class="muted">{% trans "Weekly and monthly presence rates by department." %}</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" type="button" data-chart-download data-chart-target="weekly-chart" data-filename="weekly-trends.png">
+          {% trans "Download weekly snapshot" %}
+        </button>
+        <button class="btn btn-outline btn-sm" type="button" data-chart-download data-chart-target="monthly-chart" data-filename="monthly-trends.png">
+          {% trans "Download monthly snapshot" %}
+        </button>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>{% trans "Weekly trend" %}</h3>
+        <canvas id="weekly-chart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>{% trans "Monthly trend" %}</h3>
+        <canvas id="monthly-chart" height="200"></canvas>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -104,14 +174,61 @@
               <td>{{ row.present_hours|floatformat:1 }}</td>
               <td>{{ row.absent_hours|floatformat:1 }}</td>
               <td>
-                <a class="btn btn-outline" href="{% url 'employee_week' %}?user={{ row.employee.id }}&week={{ current_week_start|date:'Y-m-d' }}">
-                  {% trans "Edit week" %}
-                </a>
+                <div class="table-actions">
+                  <a class="btn btn-outline btn-sm" href="{% url 'employee_week' %}?user={{ row.employee.id }}&week={{ current_week_start|date:'Y-m-d' }}">
+                    {% trans "Edit week" %}
+                  </a>
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="start" value="{{ start_date }}" />
+                    <input type="hidden" name="end" value="{{ end_date }}" />
+                    <button class="btn btn-outline btn-sm" name="toggle_user" value="{{ row.employee.id }}" type="submit">
+                      {% trans "Deactivate" %}
+                    </button>
+                  </form>
+                </div>
               </td>
             </tr>
           {% empty %}
             <tr>
               <td colspan="7" class="row-muted">{% trans "No employees found." %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>{% trans "Inactive employees" %}</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{% trans "Employee" %}</th>
+            <th>{% trans "Department" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for employee in inactive_employees %}
+            <tr>
+              <td>{{ employee.get_full_name|default:employee.username }}</td>
+              <td>{{ employee.department.name|default:"-" }}</td>
+              <td>
+                <form method="post" class="table-actions">
+                  {% csrf_token %}
+                  <input type="hidden" name="start" value="{{ start_date }}" />
+                  <input type="hidden" name="end" value="{{ end_date }}" />
+                  <button class="btn btn-outline btn-sm" name="toggle_user" value="{{ employee.id }}" type="submit">
+                    {% trans "Restore" %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="row-muted">{% trans "No inactive employees." %}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -152,4 +269,43 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+  {{ weekly_chart|json_script:"weekly-chart-data" }}
+  {{ monthly_chart|json_script:"monthly-chart-data" }}
+  <script>
+    const weeklyData = JSON.parse(document.getElementById("weekly-chart-data").textContent);
+    const monthlyData = JSON.parse(document.getElementById("monthly-chart-data").textContent);
+
+    const weeklyCtx = document.getElementById("weekly-chart");
+    const monthlyCtx = document.getElementById("monthly-chart");
+
+    if (weeklyCtx && window.Chart) {
+      new Chart(weeklyCtx, {
+        type: "line",
+        data: weeklyData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%` } } },
+        },
+      });
+    }
+
+    if (monthlyCtx && window.Chart) {
+      new Chart(monthlyCtx, {
+        type: "line",
+        data: monthlyData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%` } } },
+        },
+      });
+    }
+  </script>
 {% endblock %}

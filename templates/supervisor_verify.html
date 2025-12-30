@@ -68,6 +68,133 @@
         </div>
       </form>
 
+      <div class="card muted-card">
+        <div class="card-header">
+          <div>
+            <h2>{% trans "Department trends" %}</h2>
+            <p class="muted">{% trans "Weekly and monthly presence rates by department." %}</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-outline btn-sm" type="button" data-chart-download data-chart-target="weekly-chart" data-filename="weekly-trends.png">
+              {% trans "Download weekly snapshot" %}
+            </button>
+            <button class="btn btn-outline btn-sm" type="button" data-chart-download data-chart-target="monthly-chart" data-filename="monthly-trends.png">
+              {% trans "Download monthly snapshot" %}
+            </button>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <h3>{% trans "Weekly trend" %}</h3>
+            <canvas id="weekly-chart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>{% trans "Monthly trend" %}</h3>
+            <canvas id="monthly-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <h2>{% trans "Justification approvals" %}</h2>
+      <form class="filter-form" method="get">
+        <label>
+          {% trans "Status" %}
+          <select class="input" name="just_status">
+            <option value="">{% trans "All" %}</option>
+            <option value="pending" {% if just_status == "pending" %}selected{% endif %}>{% trans "Pending" %}</option>
+            <option value="approved" {% if just_status == "approved" %}selected{% endif %}>{% trans "Approved" %}</option>
+            <option value="rejected" {% if just_status == "rejected" %}selected{% endif %}>{% trans "Rejected" %}</option>
+          </select>
+        </label>
+        <label>
+          {% trans "Search" %}
+          <input class="input" type="text" name="just_search" value="{{ just_search }}" />
+        </label>
+        <label>
+          {% trans "From" %}
+          <input class="input" type="date" name="just_start" value="{{ just_start }}" />
+        </label>
+        <label>
+          {% trans "To" %}
+          <input class="input" type="date" name="just_end" value="{{ just_end }}" />
+        </label>
+        <button class="btn btn-outline" type="submit">{% trans "Filter" %}</button>
+      </form>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{% trans "Employee" %}</th>
+              <th>{% trans "Period" %}</th>
+              <th>{% trans "Reason" %}</th>
+              <th>{% trans "Receipt" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for justification in justifications %}
+              <tr>
+                <td>{{ justification.user.get_full_name|default:justification.user.username }}</td>
+                <td>{{ justification.start_date }} - {{ justification.end_date }}</td>
+                <td>
+                  {{ justification.get_reason_display }}
+                  {% if justification.other_reason %}
+                    <div class="muted">{{ justification.other_reason }}</div>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if justification.receipt %}
+                    <a class="btn btn-outline btn-sm" href="{{ justification.receipt.url }}" target="_blank" rel="noopener">
+                      {% trans "View file" %}
+                    </a>
+                  {% else %}
+                    <span class="row-muted">--</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if justification.status == "approved" %}
+                    <span class="badge success">{% trans "Approved" %}</span>
+                  {% elif justification.status == "rejected" %}
+                    <span class="badge danger">{% trans "Rejected" %}</span>
+                    {% if justification.rejection_note %}
+                      <div class="muted">{{ justification.rejection_note }}</div>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge">{% trans "Pending" %}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if justification.status == "pending" %}
+                    <div class="table-actions">
+                      <form method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-outline btn-sm" name="approve_justification" value="{{ justification.id }}" type="submit">
+                          {% trans "Approve" %}
+                        </button>
+                      </form>
+                      <form method="post" class="reject-form">
+                        {% csrf_token %}
+                        <input class="input" type="text" name="rejection_note" placeholder="{% trans 'Rejection note (optional)' %}" />
+                        <button class="btn btn-outline btn-sm" name="reject_justification" value="{{ justification.id }}" type="submit">
+                          {% trans "Reject" %}
+                        </button>
+                      </form>
+                    </div>
+                  {% else %}
+                    <span class="row-muted">--</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="row-muted">{% trans "No justifications found." %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
       <h2>{% trans "Edit employee weeks" %}</h2>
       <div class="table-wrap">
         <table class="data-table">
@@ -205,4 +332,45 @@
       </div>
     </div>
   </section>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% if not needs_checkin %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    {{ weekly_chart|json_script:"weekly-chart-data" }}
+    {{ monthly_chart|json_script:"monthly-chart-data" }}
+    <script>
+      const weeklyData = JSON.parse(document.getElementById("weekly-chart-data").textContent);
+      const monthlyData = JSON.parse(document.getElementById("monthly-chart-data").textContent);
+
+      const weeklyCtx = document.getElementById("weekly-chart");
+      const monthlyCtx = document.getElementById("monthly-chart");
+
+      if (weeklyCtx && window.Chart) {
+        new Chart(weeklyCtx, {
+          type: "line",
+          data: weeklyData,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%` } } },
+          },
+        });
+      }
+
+      if (monthlyCtx && window.Chart) {
+        new Chart(monthlyCtx, {
+          type: "line",
+          data: monthlyData,
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (value) => `${value}%` } } },
+          },
+        });
+      }
+    </script>
+  {% endif %}
 {% endblock %}

@@ -6,6 +6,7 @@ from attendance.models import (
     Department,
     SystemLog,
     User,
+    UserActivity,
     UserDailyLogin,
     UserSession,
 )
@@ -32,6 +33,8 @@ class Command(BaseCommand):
         UserDailyLogin.objects.filter(user__in=users_qs).delete()
         UserSession.objects.filter(user__in=users_qs).delete()
         SystemLog.objects.filter(user__in=users_qs).delete()
+        UserActivity.objects.filter(user__in=users_qs).delete()
+        UserActivity.objects.filter(actor__in=users_qs).delete()
 
         deleted_users = users_qs.count()
         users_qs.delete()

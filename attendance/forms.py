@@ -59,7 +59,7 @@ class EmployeeCreateForm(forms.Form):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["department"].queryset = Department.objects.all()
+        self.fields["department"].queryset = Department.objects.filter(is_active=True)
         for field in self.fields.values():
             field.widget.attrs.update({"class": "input"})
 
@@ -111,7 +111,9 @@ class AbsenceJustificationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["user"].queryset = User.objects.filter(role=User.Roles.EMPLOYEE)
+        self.fields["user"].queryset = User.objects.filter(
+            role=User.Roles.EMPLOYEE, is_active=True
+        )
         for field in self.fields.values():
             field.widget.attrs.update({"class": "input"})
 
